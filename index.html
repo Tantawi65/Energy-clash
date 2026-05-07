@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy Clash: Kozani Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ─── CSS VARIABLES ──────────────────────────────────── */
+  :root {
+    --bg-deep:      #07090f;
+    --bg-panel:     #0f1420;
+    --bg-card:      #141927;
+    --bg-card-hover:#1c2540;
+    --border:       #1e2a40;
+    --border-glow:  #2a3a60;
+
+    --coal:         #ff7a30;
+    --coal-dim:     #3d1c0a;
+    --solar:        #ffd740;
+    --solar-dim:    #2e2500;
+    --wind:         #38d9f5;
+    --wind-dim:     #002d35;
+    --ai:           #a78bfa;
+    --ai-dim:       #1e1240;
+
+    --pollution-bar:#ef4444;
+    --energy-bar:   #22c55e;
+    --text-primary: #e2e8f0;
+    --text-dim:     #64748b;
+    --text-accent:  #94a3b8;
+
+    --shadow-coal:  0 0 20px rgba(255,122,48,.35);
+    --shadow-solar: 0 0 20px rgba(255,215,64,.35);
+    --shadow-wind:  0 0 20px rgba(56,217,245,.35);
+    --shadow-ai:    0 0 20px rgba(167,139,250,.35);
+  }
+
+  /* ─── RESET & BASE ───────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    user-select: none;
+  }
+
+  /* ─── STAR FIELD BACKGROUND ──────────────────────────── */
+  .starfield {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(42,58,96,.4) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(167,139,250,.08) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 40% at 10% 60%, rgba(255,122,48,.06) 0%, transparent 50%),
+      var(--bg-deep);
+  }
+  .starfield::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 55% 70%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 70% 25%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 92% 15%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 5%  80%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 78% 75%, rgba(255,255,255,.3), transparent),
+      radial-gradient(2px 2px at 33% 60%, rgba(255,255,255,.2), transparent),
+      radial-gradient(2px 2px at 47% 30%, rgba(255,255,255,.15), transparent),
+      radial-gradient(2px 2px at 15% 50%, rgba(255,255,255,.2), transparent);
+  }
+
+  /* ─── SCREENS ────────────────────────────────────────── */
+  .screen {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity .5s ease, transform .5s ease;
+    overflow: hidden;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; transform: scale(.97); }
+
+  /* ─── LANDING PAGE ───────────────────────────────────── */
+  #landing { padding: 2rem; gap: 0; }
+  .landing-skyline { position: absolute; bottom: 0; left: 0; right: 0; opacity: .18; pointer-events: none; }
+  .landing-content { position: relative; z-index: 2; max-width: 680px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2rem; text-align: center; }
+  .landing-badge { font-family: 'Barlow Condensed', sans-serif; font-size: .75rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--coal); border: 1px solid var(--coal-dim); padding: .35rem 1rem; border-radius: 999px; background: rgba(255,122,48,.08); animation: fadeSlideDown .6s ease both; }
+  .landing-title { font-family: 'Orbitron', monospace; font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; animation: fadeSlideDown .7s ease .1s both; }
+  .landing-title .accent { color: var(--solar); }
+  .landing-title .sub { display: block; font-size: .45em; font-weight: 400; color: var(--wind); letter-spacing: .15em; margin-top: .3em; font-family: 'Barlow Condensed', sans-serif; }
+  .divider { width: 60px; height: 2px; background: linear-gradient(90deg, transparent, var(--wind), transparent); animation: fadeSlideDown .7s ease .2s both; }
+  .context-block { background: rgba(15,20,32,.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 1.5rem 2rem; max-width: 560px; animation: fadeSlideDown .7s ease .3s both; backdrop-filter: blur(8px); }
+  .context-block .label { font-family: 'Barlow Condensed', sans-serif; font-size: .7rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--coal); margin-bottom: .6rem; }
+  .context-block p { font-size: .95rem; line-height: 1.65; color: var(--text-accent); }
+  .edu-block { background: rgba(56,217,245,.05); border: 1px solid rgba(56,217,245,.2); border-radius: 12px; padding: 1.2rem 2rem; max-width: 560px; animation: fadeSlideDown .7s ease .4s both; }
+  .edu-block .label { color: var(--wind); }
+  .edu-block p { font-size: .9rem; line-height: 1.6; color: var(--text-accent); }
+  .btn-start { font-family: 'Orbitron', monospace; font-size: 1rem; font-weight: 700; letter-spacing: .1em; padding: 1rem 3.5rem; border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, var(--solar), var(--coal)); color: #07090f; position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s; animation: fadeSlideDown .7s ease .5s both; }
+  .btn-start::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,.2), transparent); opacity: 0; transition: opacity .2s; }
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,215,64,.4); }
+  .btn-start:hover::before { opacity: 1; }
+
+  /* ─── GAME SCREEN ────────────────────────────────────── */
+  #game { padding: 0; justify-content: flex-start; }
+  .game-inner { width: 100%; height: 100%; display: grid; grid-template-rows: auto 1fr auto; max-width: 960px; margin: 0 auto; padding: 1rem 1.5rem 1.2rem; gap: .8rem; }
+
+  /* DASHBOARD */
+  .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; padding: 1rem 1.2rem; background: rgba(15,20,32,.9); border: 1px solid var(--border-glow); border-radius: 12px; backdrop-filter: blur(10px); }
+  .dash-item { display: flex; flex-direction: column; gap: .4rem; }
+  .dash-label { font-family: 'Barlow Condensed', sans-serif; font-size: .65rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--text-dim); display: flex; align-items: center; gap: .4rem; }
+  .dash-value { font-family: 'Orbitron', monospace; font-size: 1.5rem; font-weight: 700; display: flex; align-items: baseline; gap: .4rem; }
+  .dash-value .target { color: var(--text-dim); font-size: .8rem; font-weight: 400; }
+  .dash-value .energy-num { color: var(--energy-bar); }
+  .bar-track { height: 10px; border-radius: 999px; background: rgba(255,255,255,.07); overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.4,0,.2,1); position: relative; }
+  .energy-fill { background: linear-gradient(90deg, #166534, var(--energy-bar)); }
+  .pollution-fill { background: linear-gradient(90deg, #7f1d1d, var(--pollution-bar)); transition: width .5s cubic-bezier(.4,0,.2,1), background .3s; }
+  .bar-labels { display: flex; justify-content: space-between; margin-top: .2rem; }
+  .bar-labels span { font-family: 'Barlow Condensed', sans-serif; font-size: .7rem; color: var(--text-dim); }
+
+  /* TURN INFO */
+  .turn-strip { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.2rem; background: rgba(15,20,32,.7); border: 1px solid var(--border); border-radius: 8px; font-family: 'Barlow Condensed', sans-serif; font-size: .8rem; letter-spacing: .05em; }
+  .turn-strip .info { color: var(--text-dim); }
+  .turn-strip .selected-sum { color: var(--wind); font-weight: 600; }
+
+  /* PLAY AREA */
+  .play-area { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; position: relative; }
+  .played-zone { display: flex; gap: .8rem; align-items: center; justify-content: center; flex-wrap: wrap; min-height: 80px; width: 100%; padding: .8rem; border: 1px dashed rgba(255,255,255,.08); border-radius: 12px; background: rgba(255,255,255,.02); transition: border-color .3s; }
+  .played-zone.active { border-color: rgba(56,217,245,.25); }
+  .played-zone-label { font-family: 'Barlow Condensed', sans-serif; font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: var(--text-dim); position: absolute; top: .6rem; left: 1.4rem; }
+
+  /* HAND */
+  .hand-area { display: flex; flex-direction: column; gap: .7rem; align-items: center; }
+  .hand { display: flex; gap: .7rem; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
+
+  /* ─── CARDS ──────────────────────────────────────────── */
+  .card { width: 100px; height: 145px; border-radius: 12px; cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: .6rem .5rem .7rem; border: 1.5px solid transparent; background: var(--bg-card); transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, border-color .25s, opacity .2s; overflow: hidden; flex-shrink: 0; }
+  .card::before { content: ''; position: absolute; inset: 0; border-radius: 12px; background: linear-gradient(160deg, rgba(255,255,255,.07) 0%, transparent 60%); pointer-events: none; }
+  .card:hover { transform: translateY(-8px) scale(1.03); }
+  .card.selected { transform: translateY(-14px) scale(1.05); border-color: rgba(255,255,255,.5); }
+  .card-coal { border-color: rgba(255,122,48,.2); background: linear-gradient(170deg, #1c1108, #141927); }
+  .card-coal.selected { border-color: var(--coal); box-shadow: var(--shadow-coal); }
+  .card-solar { border-color: rgba(255,215,64,.2); background: linear-gradient(170deg, #1a1500, #141927); }
+  .card-solar.selected { border-color: var(--solar); box-shadow: var(--shadow-solar); }
+  .card-wind { border-color: rgba(56,217,245,.2); background: linear-gradient(170deg, #001a1f, #141927); }
+  .card-wind.selected { border-color: var(--wind); box-shadow: var(--shadow-wind); }
+  .card-ai { border-color: rgba(167,139,250,.2); background: linear-gradient(170deg, #100820, #141927); }
+  .card-ai.selected { border-color: var(--ai); box-shadow: var(--shadow-ai); }
+
+  .card-type-label { font-family: 'Barlow Condensed', sans-serif; font-size: .6rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; align-self: flex-start; padding: .15rem .4rem; border-radius: 4px; background: rgba(255,255,255,.06); }
+  .card-coal .card-type-label { color: var(--coal); } .card-solar .card-type-label { color: var(--solar); } .card-wind .card-type-label { color: var(--wind); } .card-ai .card-type-label { color: var(--ai); }
+  .card-icon { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .card-stats { width: 100%; display: flex; justify-content: space-between; align-items: flex-end; font-family: 'Barlow Condensed', sans-serif; }
+  .card-stat { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .card-stat .val { font-family: 'Orbitron', monospace; font-size: .85rem; font-weight: 700; line-height: 1; }
+  .card-stat .val.energy { color: var(--energy-bar); } .card-stat .val.pollute { color: var(--pollution-bar); } .card-stat .val.special { color: var(--ai); }
+  .card-stat .lbl { font-size: .55rem; color: var(--text-dim); letter-spacing: .05em; text-transform: uppercase; }
+  .ai-badge { position: absolute; top: .5rem; right: .4rem; font-family: 'Barlow Condensed', sans-serif; font-size: .55rem; font-weight: 700; letter-spacing: .08em; color: var(--ai); background: rgba(167,139,250,.12); padding: .1rem .3rem; border-radius: 3px; border: 1px solid rgba(167,139,250,.25); }
+  .card-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-6px); background: rgba(7,9,15,.95); border: 1px solid var(--border-glow); padding: .4rem .6rem; border-radius: 6px; font-family: 'Barlow Condensed', sans-serif; font-size: .7rem; color: var(--text-accent); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+  .card:hover .card-tooltip { opacity: 1; }
+
+  /* ─── ACTION BUTTONS ─────────────────────────────────── */
+  .btn-row { display: flex; gap: .8rem; align-items: center; }
+  .btn-play { font-family: 'Orbitron', monospace; font-size: .9rem; font-weight: 700; letter-spacing: .1em; padding: .8rem 3rem; border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, #166534, var(--energy-bar)); color: #07090f; position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s, opacity .2s; }
+  .btn-play:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34,197,94,.35); }
+  .btn-play:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* ─── OVERLAY SCREENS ────────────────────────────────── */
+  .overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(7,9,15,.85); backdrop-filter: blur(12px); opacity: 0; pointer-events: none; transition: opacity .4s; }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .overlay-card { background: var(--bg-panel); border: 1px solid var(--border-glow); border-radius: 20px; padding: 3rem 3.5rem; max-width: 480px; width: 90%; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; transform: scale(.92); transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+  .overlay.show .overlay-card { transform: scale(1); }
+  .overlay-icon { width: 80px; height: 80px; }
+  .overlay-title { font-family: 'Orbitron', monospace; font-size: 2rem; font-weight: 900; line-height: 1.1; }
+  .overlay-title.win { color: var(--energy-bar); } .overlay-title.lose { color: var(--pollution-bar); }
+  .overlay-sub { font-size: .95rem; line-height: 1.65; color: var(--text-accent); max-width: 340px; }
+  .overlay-stats { display: flex; gap: 1.5rem; justify-content: center; font-family: 'Barlow Condensed', sans-serif; }
+  .overlay-stat { text-align: center; }
+  .overlay-stat .n { font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 700; line-height: 1; color: var(--solar); }
+  .overlay-stat .l { font-size: .7rem; color: var(--text-dim); margin-top: .2rem; letter-spacing: .1em; text-transform: uppercase; }
+  .btn-restart { font-family: 'Orbitron', monospace; font-size: .85rem; font-weight: 700; letter-spacing: .1em; padding: .9rem 2.5rem; border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, var(--wind-dim), var(--wind)); color: #07090f; transition: transform .2s, box-shadow .2s; margin-top: .5rem; }
+  .btn-restart:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(56,217,245,.3); }
+
+  /* ─── HEADER BAR ─────────────────────────────────────── */
+  .header-bar { display: flex; align-items: center; justify-content: space-between; padding: .6rem 1.2rem; border-bottom: 1px solid var(--border); font-family: 'Barlow Condensed', sans-serif; font-size: .75rem; color: var(--text-dim); letter-spacing: .1em; }
+  .header-bar .logo { font-family: 'Orbitron', monospace; font-size: .9rem; font-weight: 700; color: var(--solar); letter-spacing: .05em; }
+  .header-bar .logo span { color: var(--wind); }
+  .legend { display: flex; gap: 1rem; align-items: center; font-family: 'Barlow Condensed', sans-serif; font-size: .72rem; }
+
+  /* ─── KEYFRAMES ──────────────────────────────────────── */
+  @keyframes fadeSlideDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes cardDeal { from { opacity: 0; transform: translateY(40px) scale(.85); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+  .deal-anim { animation: cardDeal .4s cubic-bezier(.34,1.56,.64,1) both; }
+  .shake { animation: shake .4s ease; }
+</style>
+</head>
+<body>
+
+<div class="starfield"></div>
+
+<div class="screen" id="landing">
+  <svg class="landing-skyline" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff7a30" stop-opacity=".4"/><stop offset="100%" stop-color="#07090f" stop-opacity="1"/></linearGradient>
+    </defs>
+    <rect width="1200" height="300" fill="url(#skyGrad)"/>
+    <rect x="100" y="180" width="120" height="100" fill="#1a1a2e"/>
+    <rect x="14" y="16" width="8" height="20" fill="#ff7a30" opacity=".7"/>
+    <ellipse cx="620" cy="270" rx="200" ry="40" fill="#0f1420"/>
+    <line x1="580" y1="230" x2="580" y2="260" stroke="#94a3b8" stroke-width="2"/>
+    <rect x="0" y="274" width="1200" height="30" fill="#07090f"/>
+  </svg>
+
+  <div class="landing-content">
+    <div class="landing-badge">⚡ Energy Strategy Puzzle</div>
+    <h1 class="landing-title">Energy<span class="accent"> Clash</span><span class="sub">Kozani Edition</span></h1>
+    <div class="divider"></div>
+    <div class="context-block">
+      <div class="label">🏭 &nbsp;The Mission</div>
+      <p>Kozani is transitioning away from coal. You are the new energy manager. You must generate 100 Megawatts of power to keep the city running. Select your power sources wisely—you only get one turn to solve the puzzle without causing a blackout or maxing out pollution.</p>
+    </div>
+    <button class="btn-start" onclick="startGame()">START PUZZLE</button>
+  </div>
+</div>
+
+<div class="screen hidden" id="game">
+  <div class="header-bar">
+    <div class="logo">Energy<span> Clash</span></div>
+    <div class="legend">
+      <span style="color:var(--coal)">■</span> Coal &nbsp;
+      <span style="color:var(--solar)">■</span> Solar &nbsp;
+      <span style="color:var(--wind)">■</span> Wind &nbsp;
+      <span style="color:var(--ai)">■</span> AI Grid
+    </div>
+  </div>
+
+  <div class="game-inner">
+    <div class="dashboard" id="dashboard">
+      <div class="dash-item">
+        <div class="dash-label">City Power Supply</div>
+        <div class="dash-value"><span class="energy-num" id="energyDisplay">0</span><span class="target">/ <span id="demandDisplay">100</span> MW target</span></div>
+        <div class="bar-track"><div class="bar-fill energy-fill" id="energyBar" style="width:0%"></div></div>
+      </div>
+      <div class="dash-item" id="pollutionDash">
+        <div class="dash-label">Pollution Meter</div>
+        <div class="dash-value"><span style="color:var(--pollution-bar)" id="pollutionDisplay">0</span><span class="target">/ 100 limit</span></div>
+        <div class="bar-track"><div class="bar-fill pollution-fill" id="pollutionBar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="turn-strip">
+      <span class="info" id="turnInfo">Select your power sources to reach 100 MW.</span>
+      <span class="selected-sum" id="selectedSumDisplay"></span>
+    </div>
+
+    <div class="play-area">
+      <div class="played-zone-label">SELECTED STRATEGY</div>
+      <div class="played-zone" id="playedZone">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;color:var(--text-dim);letter-spacing:.1em">Selected cards will appear here</span>
+      </div>
+    </div>
+
+    <div class="hand-area">
+      <div class="hand" id="handContainer"></div>
+      <div class="btn-row">
+        <button class="btn-play" id="playBtn" disabled onclick="playTurn()">▶ ENGAGE GRID</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="winOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title win">KOZANI POWERED!</div>
+    <p class="overlay-sub">You successfully met the city's energy demand using smart AI to multiply your clean energy. The transition is a success!</p>
+    <div class="overlay-stats">
+      <div class="overlay-stat"><div class="n" id="winEnergy">—</div><div class="l">MW Generated</div></div>
+      <div class="overlay-stat"><div class="n" id="winPollution" style="color:var(--energy-bar)">0</div><div class="l">Pollution</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">PLAY AGAIN</button>
+  </div>
+</div>
+
+<div class="overlay" id="loseOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title lose" id="loseTitle">CITY CHOKED!</div>
+    <p class="overlay-sub" id="loseSubtext">The pollution meter maxed out. Coal is too toxic for the city's new standards.</p>
+    <div class="overlay-stats">
+      <div class="overlay-stat"><div class="n" id="loseEnergy" style="color:var(--coal)">—</div><div class="l">MW Reached</div></div>
+      <div class="overlay-stat"><div class="n" id="losePollution" style="color:var(--pollution-bar)">—</div><div class="l">Pollution</div></div>
+    </div>
+    <button class="btn-restart" onclick="restartGame()">TRY AGAIN</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   ██████  PUZZLE LOGIC MODULE
+═══════════════════════════════════════════════════════════ */
+
+const CARD_DEFINITIONS = {
+  coal: { id: 'coal', name: 'Coal Plant', energy: 60, pollution: 100, isRenewable: false, isMultiplier: false, description: 'High output, toxic pollution', color: 'coal' },
+  solar: { id: 'solar', name: 'Solar Farm', energy: 30, pollution: 0, isRenewable: true, isMultiplier: false, description: 'Clean daytime energy', color: 'solar' },
+  wind: { id: 'wind', name: 'Wind Farm', energy: 30, pollution: 0, isRenewable: true, isMultiplier: false, description: 'Steady clean energy', color: 'wind' },
+  ai_grid: { id: 'ai_grid', name: 'AI Grid', energy: 0, pollution: 0, isRenewable: false, isMultiplier: true, description: '2× renewable energy', color: 'ai' }
+};
+
+const GAME_CONFIG = { cityDemand: 100, pollutionMax: 100 };
+let G = null;
+
+function createGameState() {
+  return {
+    config: { ...GAME_CONFIG },
+    hand: [
+      { ...CARD_DEFINITIONS.coal, uid: 'coal_1' },
+      { ...CARD_DEFINITIONS.solar, uid: 'solar_1' },
+      { ...CARD_DEFINITIONS.wind, uid: 'wind_1' },
+      { ...CARD_DEFINITIONS.ai_grid, uid: 'ai_1' }
+    ],
+    selectedUids: new Set(),
+    totalEnergy: 0,
+    totalPollution: 0,
+    status: 'playing' 
+  };
+}
+
+function computeTurnResult(cards) {
+  const hasMultiplier = cards.some(c => c.isMultiplier);
+  let renewableEnergy = 0, coalEnergy = 0, pollution = 0;
+
+  cards.forEach(card => {
+    if (card.isMultiplier) return;
+    if (card.isRenewable) renewableEnergy += card.energy;
+    else { coalEnergy += card.energy; pollution += card.pollution; }
+  });
+
+  if (hasMultiplier) renewableEnergy *= 2;
+  return { energy: renewableEnergy + coalEnergy, pollution, renewableEnergy, coalEnergy, hasMultiplier };
+}
+
+function applyTurn(state) {
+  const played = state.hand.filter(c => state.selectedUids.has(c.uid));
+  const result = computeTurnResult(played);
+
+  state.totalEnergy = result.energy;
+  state.totalPollution = result.pollution;
+
+  if (state.totalPollution >= state.config.pollutionMax) state.status = 'lost_pollution';
+  else if (state.totalEnergy >= state.config.cityDemand) state.status = 'won';
+  else state.status = 'lost_energy';
+
+  return result;
+}
+
+/* ── SVG ICONS ───────────────────────────────────────────── */
+function renderIcon(type) {
+  if (type === 'coal') return `<svg width="54" height="54" viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="26" width="38" height="22" rx="1" fill="none" stroke="#ff7a30" stroke-width="1.5"/><rect x="14" y="16" width="8" height="20" fill="#ff7a30" opacity=".7"/><rect x="32" y="18" width="7" height="18" fill="#ff7a30" opacity=".6"/></svg>`;
+  if (type === 'solar') return `<svg width="54" height="54" viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg"><circle cx="27" cy="27" r="12" fill="#ffd740"/><line x1="27" y1="4" x2="27" y2="10" stroke="#ffd740" stroke-width="2.5"/></svg>`;
+  if (type === 'wind') return `<svg width="54" height="54" viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg"><polygon points="27,46 24,50 30,50" fill="#38d9f5" opacity=".6"/><rect x="26" y="28" width="2" height="18" fill="#38d9f5" opacity=".7"/><circle cx="27" cy="27" r="4" fill="#38d9f5"/></svg>`;
+  if (type === 'ai_grid') return `<svg width="54" height="54" viewBox="0 0 54 54" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="18" width="18" height="18" rx="3" fill="none" stroke="#a78bfa" stroke-width="1.5"/><text x="27" y="31" text-anchor="middle" font-family="Orbitron,monospace" font-size="9" font-weight="700" fill="#a78bfa">×2</text></svg>`;
+  return '';
+}
+
+function startGame() {
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  restartGame();
+}
+
+function restartGame() {
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('loseOverlay').classList.remove('show');
+  G = createGameState();
+  renderAll();
+}
+
+function buildCardElement(card, isSelected) {
+  const el = document.createElement('div');
+  el.className = `card card-${card.color} deal-anim${isSelected ? ' selected' : ''}`;
+  el.dataset.uid = card.uid;
+
+  const energyText = card.isMultiplier ? `<div class="card-stat"><div class="val special">×2</div><div class="lbl">Boost</div></div>` : `<div class="card-stat"><div class="val energy">${card.energy}</div><div class="lbl">MW</div></div>`;
+  const pollutionText = card.isMultiplier ? `<div class="card-stat"><div class="val" style="color:var(--ai)">0</div><div class="lbl">Pollut.</div></div>` : card.pollution > 0 ? `<div class="card-stat"><div class="val pollute">${card.pollution}</div><div class="lbl">Pollut.</div></div>` : `<div class="card-stat"><div class="val" style="color:var(--energy-bar)">0</div><div class="lbl">Pollut.</div></div>`;
+
+  el.innerHTML = `
+    <div class="card-type-label">${card.name}</div>
+    ${card.isMultiplier ? '<div class="ai-badge">RENEW ×2</div>' : ''}
+    <div class="card-icon">${renderIcon(card.color === 'ai' ? 'ai_grid' : card.color)}</div>
+    <div class="card-stats">${energyText}${pollutionText}</div>
+    <div class="card-tooltip">${card.description}</div>
+  `;
+  el.addEventListener('click', () => {
+    if (G.status !== 'playing') return;
+    if (G.selectedUids.has(card.uid)) G.selectedUids.delete(card.uid);
+    else G.selectedUids.add(card.uid);
+    renderAll();
+  });
+  return el;
+}
+
+function playTurn() {
+  if (G.selectedUids.size === 0) return;
+  applyTurn(G);
+  
+  if (G.status === 'won') setTimeout(() => showWin(), 300);
+  else setTimeout(() => showLose(G.status), 300);
+}
+
+function renderAll() {
+  const { config } = G;
+  
+  // Dashboard Reset (It only shows results after they click play, so it stays at 0 during selection to force the mental math)
+  document.getElementById('energyDisplay').textContent = "0";
+  document.getElementById('energyBar').style.width = '0%';
+  document.getElementById('pollutionDisplay').textContent = "0";
+  document.getElementById('pollutionBar').style.width = '0%';
+
+  // Hand
+  const container = document.getElementById('handContainer');
+  container.innerHTML = '';
+  G.hand.forEach((card, i) => {
+    const el = buildCardElement(card, G.selectedUids.has(card.uid));
+    el.style.animationDelay = (i * 0.06) + 's';
+    container.appendChild(el);
+  });
+
+  // Played Zone
+  const zone = document.getElementById('playedZone');
+  const selected = G.hand.filter(c => G.selectedUids.has(c.uid));
+  
+  if (selected.length === 0) {
+    zone.innerHTML = `<span style="font-family:'Barlow Condensed',sans-serif;font-size:.75rem;color:var(--text-dim);letter-spacing:.1em">Select cards from below</span>`;
+  } else {
+    zone.innerHTML = '';
+    selected.forEach(card => {
+      const mini = document.createElement('div');
+      mini.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:2px;`;
+      mini.innerHTML = `<div style="transform:scale(.7);height:50px">${renderIcon(card.color === 'ai' ? 'ai_grid' : card.color)}</div><span style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;color:var(--text-dim)">${card.name}</span>`;
+      zone.appendChild(mini);
+    });
+  }
+
+  // Turn Strip sum
+  const sum = document.getElementById('selectedSumDisplay');
+  if (selected.length === 0) sum.textContent = '';
+  else {
+    const result = computeTurnResult(selected);
+    let sumText = `Projected: ${result.energy} MW`;
+    if (result.hasMultiplier && result.renewableEnergy > 0) sumText += ` (AI Active)`;
+    if (result.pollution > 0) sumText += ` | +${result.pollution} Pollution ☠`;
+    sum.textContent = sumText;
+  }
+
+  document.getElementById('playBtn').disabled = G.selectedUids.size === 0;
+}
+
+function showWin() {
+  document.getElementById('energyDisplay').textContent = G.totalEnergy;
+  document.getElementById('energyBar').style.width = '100%';
+  document.getElementById('winEnergy').textContent = G.totalEnergy;
+  document.getElementById('winOverlay').classList.add('show');
+}
+
+function showLose(reason) {
+  document.getElementById('energyDisplay').textContent = G.totalEnergy;
+  document.getElementById('energyBar').style.width = (G.totalEnergy) + '%';
+  document.getElementById('pollutionDisplay').textContent = G.totalPollution;
+  document.getElementById('pollutionBar').style.width = Math.min(100, G.totalPollution) + '%';
+  
+  document.getElementById('loseEnergy').textContent = G.totalEnergy;
+  document.getElementById('losePollution').textContent = G.totalPollution;
+
+  const title = document.getElementById('loseTitle');
+  const sub = document.getElementById('loseSubtext');
+
+  if (reason === 'lost_pollution') {
+    title.textContent = "CITY CHOKED!";
+    sub.textContent = "The pollution meter maxed out. Coal is too toxic for the city's new standards.";
+    document.getElementById('pollutionDash').classList.add('pollution-critical');
+  } else {
+    title.textContent = "BLACKOUT!";
+    sub.textContent = "You didn't generate enough power (100 MW). Solar and Wind alone aren't enough—you need a smart grid to optimize them!";
+  }
+
+  document.getElementById('loseOverlay').classList.add('show');
+  document.getElementById('dashboard').classList.add('shake');
+  setTimeout(() => document.getElementById('dashboard').classList.remove('shake'), 500);
+}
+</script>
+</body>
+</html>
